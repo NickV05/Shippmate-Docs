@@ -34,7 +34,7 @@ https://shippmate-server-d3d197bd152a.herokuapp.com
 
 ### Testing Environment(QA/DEV)
 ```
-https://shippmate-test-server.herokuapp.com
+https://shippmate-server-test-976f52a5a04a.herokuapp.com
 ```
 
 ## Authentication
@@ -87,9 +87,9 @@ The API supports a testing mode for label creation without processing actual pay
 
 To use testing mode:
 1. Simply use the QA environment URL instead of the production URL
-2. Rate and duties calculations will still provide accurate pricing
+2. Rate and duties calculations will still provide accurate pricing 
 
-QA Environment: `https://shippmate-test-server.herokuapp.com`
+QA Environment: `https://shippmate-server-test-976f52a5a04a.herokuapp.com`
 Production Environment: `https://shippmate-server-d3d197bd152a.herokuapp.com`
 
 ## Endpoints
