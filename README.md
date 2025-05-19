@@ -110,21 +110,12 @@ Retrieves information about available carriers and their capabilities.
     {
       "id": "ups",
       "name": "UPS",
-      "capabilities": ["domestic", "international", "duties", "pickup"],
-      "services": [
-        { "code": "01", "name": "UPS Next Day Air" },
-        { "code": "02", "name": "UPS 2nd Day Air" },
-        { "code": "03", "name": "UPS Ground" }
-      ]
+      "capabilities": ["domestic", "international", "duties", "pickup"]
     },
     {
       "id": "bringer",
       "name": "Bringer",
-      "capabilities": ["international", "duties"],
-      "services": [
-        { "code": "standard", "name": "Standard" },
-        { "code": "express", "name": "Express" }
-      ]
+      "capabilities": ["international", "duties"]
     }
   ]
 }
@@ -257,7 +248,6 @@ Calculates duties and taxes for international shipments.
   "carrier": "ups" // Specify carrier to use for duties calculation (ups or bringer)
 }
 ```
-
 **Response:**
 
 ```json
