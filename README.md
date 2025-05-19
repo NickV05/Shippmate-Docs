@@ -336,7 +336,8 @@ Creates a shipping label with a carrier after calculating rates and duties.
   "declaredValue": 170.00,
   "currency": "USD",
   "incoterms": "DDP", // Currently supporting only DDP 
-  "shippingPurpose": "SALE", 
+  "shippingPurpose": "SALE",
+  "via": "laredo", // Required for Bringer Label creation. Use 'laredo' for shipping to MX and 'miami' for CL,BR,CO. This will be also returned in the rate response
   "pickup": {  // UPS pickup object
     "pickupDate": "2023-06-16",
     "pickupStart": "09:00",
