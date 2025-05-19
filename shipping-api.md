@@ -34,7 +34,7 @@ https://shippmate-server-d3d197bd152a.herokuapp.com
 
 ### Testing Environment(QA/DEV)
 ```
-https://shippmate-test-server.herokuapp.com
+https://shippmate-server-test-976f52a5a04a.herokuapp.com
 ```
 
 ## Authentication
@@ -89,7 +89,7 @@ To use testing mode:
 1. Simply use the QA environment URL instead of the production URL
 2. Rate and duties calculations will still provide accurate pricing
 
-QA Environment: `https://shippmate-test-server.herokuapp.com`
+QA Environment: `https://shippmate-server-test-976f52a5a04a.herokuapp.com`
 Production Environment: `https://shippmate-server-d3d197bd152a.herokuapp.com`
 
 ## Endpoints
@@ -110,21 +110,12 @@ Retrieves information about available carriers and their capabilities.
     {
       "id": "ups",
       "name": "UPS",
-      "capabilities": ["domestic", "international", "duties", "pickup"],
-      "services": [
-        { "code": "01", "name": "UPS Next Day Air" },
-        { "code": "02", "name": "UPS 2nd Day Air" },
-        { "code": "03", "name": "UPS Ground" }
-      ]
+      "capabilities": ["domestic", "international", "duties", "pickup"]
     },
     {
       "id": "bringer",
       "name": "Bringer",
-      "capabilities": ["international", "duties"],
-      "services": [
-        { "code": "standard", "name": "Standard" },
-        { "code": "express", "name": "Express" }
-      ]
+      "capabilities": ["international", "duties"]
     }
   ]
 }
@@ -257,7 +248,6 @@ Calculates duties and taxes for international shipments.
   "carrier": "ups" // Specify carrier to use for duties calculation (ups or bringer)
 }
 ```
-
 **Response:**
 
 ```json
