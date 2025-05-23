@@ -17,7 +17,14 @@ This document provides comprehensive information about the Shipping API endpoint
   - [Calculate Duties](#calculate-duties)
   - [Create Shipping Label](#create-shipping-label)
   - [Track Shipment](#track-shipment)
+  - [Get Shipping Limits](#get-shipping-limits)
+  - [Validate Package Dimensions](#validate-package-dimensions)
+- [Shipping Limits](#shipping-limits)
+  - [Bringer Limits by Destination](#bringer-limits-by-destination)
+  - [UPS Limits](#ups-limits)
+  - [Value Limits](#value-limits)
 - [Error Handling](#error-handling)
+- [Country-Specific Requirements](#country-specific-requirements)
 
 ## Overview
 
@@ -87,7 +94,7 @@ The API supports a testing mode for label creation without processing actual pay
 
 To use testing mode:
 1. Simply use the QA environment URL instead of the production URL
-2. Rate and duties calculations will still provide accurate pricing 
+2. Rate and duties calculations will still provide accurate pricing
 
 QA Environment: `https://shippmate-server-test-976f52a5a04a.herokuapp.com`
 Production Environment: `https://shippmate-server-d3d197bd152a.herokuapp.com`
@@ -295,7 +302,8 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "state": "CA",
     "postalCode": "90001",
     "country": "US",
-    "phone": "+13105551234"
+    "phone": "+13105551234",
+    "taxId": "12345678901"  // Required for Brazilian recipients when using Bringer carrier
   },
   "packages": [
     {
@@ -336,8 +344,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
   "declaredValue": 170.00,
   "currency": "USD",
   "incoterms": "DDP", // Currently supporting only DDP 
-  "shippingPurpose": "SALE",
-  "via": "laredo", // Required for Bringer Label creation. Use 'laredo' for shipping to MX and 'miami' for CL,BR,CO. This will be also returned in the rate response
+  "shippingPurpose": "SALE", 
   "pickup": {  // UPS pickup object
     "pickupDate": "2023-06-16",
     "pickupStart": "09:00",
@@ -347,6 +354,11 @@ Creates a shipping label with a carrier after calculating rates and duties.
   },
 }
 ```
+
+**Important Notes:**
+- For shipments to Brazil using Bringer carrier, a valid Tax ID (CPF) is required in the recipient information.
+- For international shipments, providing HS codes for items is mandatory.
+- For UPS international shipments, declared value and shipping purpose are required.
 
 **Label Creation Process:**
 
@@ -484,6 +496,231 @@ The response format is standardized across all carriers to provide a consistent 
 }
 ```
 
+### Get Shipping Limits
+
+Retrieves shipping limits for a specific carrier and destination.
+
+**Endpoint:** `GET /shipping/limits`
+**Authentication:** Optional - works the same for all users
+
+**Request Parameters:**
+
+```
+carrier: string (required) - Carrier code (e.g., "bringer", "ups")
+origin: string (required) - Origin country code (e.g., "US")
+destination: string (required) - Destination country code (e.g., "AR", "BR", "CL", "MX")
+dimensionUnit: string (optional) - "IN" or "CM" (default: "IN")
+weightUnit: string (optional) - "LBS" or "KGS" (default: "LBS")
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "carrier": "bringer",
+    "origin": "US",
+    "destination": "AR",
+    "dimensions": {
+      "minLength": 6,
+      "minWidth": 1,
+      "minHeight": 4,
+      "minSum": 11,
+      "maxLength": 39,
+      "maxWidth": 39,
+      "maxHeight": 39,
+      "maxSum": 70
+    },
+    "weight": {
+      "max": 44
+    }
+  }
+}
+```
+
+### Validate Package Dimensions
+
+Validates package dimensions, weight, and value against shipping limits.
+
+**Endpoint:** `POST /shipping/validate-dimensions`
+**Authentication:** Optional - works the same for all users
+
+**Request Body:**
+
+```json
+{
+  "carrier": "bringer",
+  "dimensions": {
+    "length": 35,
+    "width": 25,
+    "height": 15
+  },
+  "weight": 30,
+  "value": 350,
+  "currency": "USD",
+  "origin": "US",
+  "destination": "AR",
+  "dimensionUnit": "IN",
+  "weightUnit": "LBS"
+}
+```
+
+**Response for Valid Package:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "carrier": "bringer",
+    "valid": true,
+    "dimensions": {
+      "valid": true,
+      "message": null
+    },
+    "weight": {
+      "valid": true,
+      "message": null
+    },
+    "value": {
+      "valid": true,
+      "message": null
+    }
+  }
+}
+```
+
+**Response for Invalid Package:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "carrier": "bringer",
+    "valid": false,
+    "dimensions": {
+      "valid": false,
+      "message": "For AR via Bringer, maximum allowed length is 39 IN"
+    },
+    "weight": {
+      "valid": true,
+      "message": null
+    },
+    "value": {
+      "valid": false,
+      "message": "Shipments over US$400.00 require a quote with H.S. Code, full description, invoice price, weight and dimensions. Please contact bps-sales@bringer.com"
+    },
+    "message": "For AR via Bringer, maximum allowed length is 39 IN"
+  }
+}
+```
+
+## Shipping Limits
+
+### Bringer Limits by Destination
+
+For shipments from the US using Bringer carrier, the following limits apply by destination country:
+
+#### Argentina (AR)
+- **Weight Limits:**
+  - Maximum: 44 lbs (20 kg)
+- **Dimension Limits:**
+  - **Inches:** Length ≤ 39", Width ≤ 39", Height ≤ 39", Combined (L+W+H) ≤ 70"
+  - **Centimeters:** Length ≤ 100 cm, Width ≤ 100 cm, Height ≤ 100 cm, Combined ≤ 180 cm
+  - **Minimums:** Length ≥ 6" (16 cm), Width ≥ 1" (1 cm), Height ≥ 4" (11 cm)
+- **Value Limits:**
+  - Maximum declared value: US$400
+  - Shipments over US$400 require a quote with H.S. Code, full description, invoice price, weight and dimensions
+  - Contact: bps-sales@bringer.com
+
+#### Brazil (BR)
+- **Weight Limits:**
+  - Maximum: 66 lbs (29.9 kg)
+- **Dimension Limits:**
+  - **Inches:** No individual dimension limits, Combined (L+W+H) ≤ 70"
+  - **Centimeters:** No individual dimension limits, Combined ≤ 180 cm
+  - **Minimums:** Length ≥ 6" (16 cm), Width ≥ 1" (1 cm), Height ≥ 4" (11 cm)
+
+#### Chile (CL)
+- **Weight Limits:**
+  - Maximum: 6 lbs (2.7 kg)
+- **Dimension Limits:**
+  - **Inches:** Length ≤ 39.85", Width ≤ 39.85", Height ≤ 39.85", Combined ≤ 118"
+  - **Centimeters:** Length ≤ 100 cm, Width ≤ 100 cm, Height ≤ 100 cm, Combined ≤ 300 cm
+  - **Minimums:** All dimensions ≥ 1" (1 cm)
+
+#### Mexico (MX)
+- **Weight Limits:**
+  - Maximum: 132 lbs (59.8 kg)
+- **Dimension Limits:**
+  - **Inches:** Length ≤ 23", No width/height limits, Combined (L+W+H) ≤ 70"
+  - **Centimeters:** Length ≤ 60 cm, No width/height limits, Combined ≤ 180 cm
+  - **Minimums:** Length ≥ 6" (16 cm), Width ≥ 1" (1 cm), Height ≥ 4" (11 cm)
+
+### UPS Limits
+
+UPS has standard dimensional limits that apply globally:
+
+- **Maximum Length:** 108 inches (274 cm)
+- **Maximum Girth:** Length + 2×(Width + Height) ≤ 165 inches (419 cm)
+- **Weight Limits:** Vary by service and destination
+
+### Value Limits
+
+#### Argentina
+- **Maximum Value:** US$400
+- **Currency:** USD only
+- **Over-limit Requirements:** Shipments exceeding US$400 require:
+  - Complete H.S. Code classification
+  - Full product description
+  - Invoice price documentation
+  - Weight and dimension specifications
+  - Quote request to bps-sales@bringer.com
+
+### Usage Examples
+
+#### Check if package meets Argentina limits:
+```bash
+curl -X POST /shipping/validate-dimensions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "carrier": "bringer",
+    "dimensions": {"length": 35, "width": 25, "height": 15},
+    "weight": 30,
+    "origin": "US",
+    "destination": "AR",
+    "dimensionUnit": "IN",
+    "weightUnit": "LBS"
+  }'
+```
+
+#### Response for valid package:
+```json
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "dimensions": {"valid": true, "message": null},
+    "weight": {"valid": true, "message": null}
+  }
+}
+```
+
+#### Response for oversized package:
+```json
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "dimensions": {
+      "valid": false, 
+      "message": "For AR via Bringer, maximum allowed length is 39 IN"
+    },
+    "weight": {"valid": true, "message": null}
+  }
+}
+```
+
 ## Error Handling
 
 Errors are returned with appropriate HTTP status codes and descriptive messages:
@@ -503,3 +740,29 @@ Common status codes:
 - `500`: Internal Server Error - Server-side error
 
 For validation errors, the response will include specific information about the missing or invalid fields. 
+
+## Country-Specific Requirements
+
+### Argentina (AR)
+When using Bringer carrier for shipments to Argentina:
+- **Value Limitation:** Maximum declared value is US$400
+- **Over-limit Process:** Shipments exceeding US$400 require a comprehensive quote including:
+  - Complete H.S. Code classification for all items
+  - Detailed product descriptions
+  - Invoice pricing documentation
+  - Exact weight and dimension specifications
+  - Direct contact with bps-sales@bringer.com for approval
+- **Weight and Dimension Limits:** Must comply with Bringer Argentina limits (see Shipping Limits section)
+
+### Brazil (BR)
+When using Bringer carrier for shipments to Brazil:
+- A valid Tax ID (CPF for individuals, CNPJ for businesses) is required in the recipient information
+- Must be provided in the `taxId` field of the `to` address object
+- The API will return a validation error if the Tax ID is missing
+
+### International Shipments
+For all international shipments:
+- HS codes are required for all items
+- HS codes must be valid for both origin and destination countries
+- Declared value is required for customs clearance
+- Shipping purpose must be specified (SALE, GIFT, SAMPLE, RETURN, OTHER) 
