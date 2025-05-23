@@ -8,7 +8,6 @@ This document provides comprehensive information about the Shipping API endpoint
 - [Environment URLs](#environment-urls)
 - [Authentication](#authentication)
   - [Obtaining an Auth Token](#obtaining-an-auth-token)
-  - [User Roles and Permissions](#user-roles-and-permissions)
   - [Authentication Headers](#authentication-headers)
 - [Testing Mode](#testing-mode)
 - [Endpoints](#endpoints)
