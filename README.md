@@ -8,6 +8,7 @@ This document provides comprehensive information about the Shipping API endpoint
 - [Environment URLs](#environment-urls)
 - [Authentication](#authentication)
   - [Obtaining an Auth Token](#obtaining-an-auth-token)
+  - [User Roles and Permissions](#user-roles-and-permissions)
   - [Authentication Headers](#authentication-headers)
 - [Testing Mode](#testing-mode)
 - [Endpoints](#endpoints)
@@ -18,6 +19,7 @@ This document provides comprehensive information about the Shipping API endpoint
   - [Track Shipment](#track-shipment)
   - [Get Shipping Limits](#get-shipping-limits)
   - [Validate Package Dimensions](#validate-package-dimensions)
+  - [Create Pickup Request](#create-pickup-request)
 - [Shipping Limits](#shipping-limits)
   - [Bringer Limits by Destination](#bringer-limits-by-destination)
   - [UPS Limits](#ups-limits)
@@ -38,7 +40,7 @@ The API is available in two environments:
 https://shippmate-server-d3d197bd152a.herokuapp.com
 ```
 
-### Testing Environment(QA/DEV)
+### Testing Environment (QA/DEV)
 ```
 https://shippmate-server-test-976f52a5a04a.herokuapp.com
 ```
@@ -75,6 +77,13 @@ To obtain an authentication token, use the `/shipping/auth` endpoint:
 
 The token is valid for 4 hours and should be included in the Authorization header for subsequent requests.
 
+### User Roles and Permissions
+
+The API supports different user types with varying permissions:
+
+1. **Regular Users**: Access to all carriers with standard rates
+2. **Admin Users**: Administrative access with additional features
+3. **Users with Stripe Bypass**: Can create labels without immediate payment (pending payment records are created)
 
 ### Authentication Headers
 
@@ -84,15 +93,14 @@ All API endpoints support authentication using Bearer tokens:
 Authorization: Bearer <your_token>
 ```
 
-The token should contain user identification. Some endpoints support optional authentication to retrieve basic information without authentication.
-
+The token contains user identification and permissions. Some endpoints support optional authentication to retrieve basic information without authentication.
 
 ## Testing Mode
 
 The API supports a testing mode for label creation without processing actual payments.
 
 To use testing mode:
-1. Simply use the QA environment URL instead of the production URL
+1. Use the QA environment URL instead of the production URL
 2. Rate and duties calculations will still provide accurate pricing
 
 QA Environment: `https://shippmate-server-test-976f52a5a04a.herokuapp.com`
@@ -132,7 +140,7 @@ Retrieves information about available carriers and their capabilities.
 Calculates shipping rates from multiple carriers with a unified request format.
 
 **Endpoint:** `POST /shipping/rate`
-**Authentication:** Optional - authenticated users may receive custom rates and carriers
+**Authentication:** Optional - authenticated users may receive custom rates based on their markup settings
 
 **Request Body:**
 
@@ -215,6 +223,11 @@ Calculates shipping rates from multiple carriers with a unified request format.
 }
 ```
 
+**Notes:**
+- Rates are automatically sorted by transit time (fastest first), then by price
+- For authenticated users, rates include user-specific markups based on their settings
+- The API automatically selects the cheapest rate when multiple accounts are available for the same service
+
 ### Calculate Duties
 
 Calculates duties and taxes for international shipments.
@@ -254,6 +267,7 @@ Calculates duties and taxes for international shipments.
   "carrier": "ups" // Specify carrier to use for duties calculation (ups or bringer)
 }
 ```
+
 **Response:**
 
 ```json
@@ -269,6 +283,11 @@ Calculates duties and taxes for international shipments.
   }
 }
 ```
+
+**Notes:**
+- For Bringer carrier, duties are calculated individually for each item and then summed
+- For UPS carrier, the API uses the UPS Landed Cost API for accurate calculations
+- HS codes are validated and may be automatically adjusted for specific country combinations
 
 ### Create Shipping Label
 
@@ -344,45 +363,50 @@ Creates a shipping label with a carrier after calculating rates and duties.
   "currency": "USD",
   "incoterms": "DDP", // Currently supporting only DDP 
   "shippingPurpose": "SALE", 
-  "pickup": {  // UPS pickup object
+  "pickup": {  // Optional UPS pickup object
     "pickupDate": "2023-06-16",
     "pickupStart": "09:00",
     "pickupEnd": "17:00",
     "pickupType": "01",
     "residential": "01"
   },
+  "payment": {  // Required unless user has stripeBypass
+    "customerId": "cus_xxxxxxxxxxxxx",
+    "description": "Custom payment description"
+  },
+  "skipEmailSending": false // Optional, defaults to false
 }
 ```
 
 **Important Notes:**
-- For shipments to Brazil using Bringer carrier, a valid Tax ID (CPF) is required in the recipient information.
-- For international shipments, providing HS codes for items is mandatory.
-- For UPS international shipments, declared value and shipping purpose are required.
+- For shipments to Brazil using Bringer carrier, a valid Tax ID (CPF) is required in the recipient information
+- For international shipments, providing HS codes for items is mandatory
+- For UPS international shipments, declared value and shipping purpose are required
+- The `owner` field is automatically set to the authenticated user's ID if not provided
+- Users with `stripeBypass` flag don't need to provide payment information
 
 **Label Creation Process:**
 
 1. Validate input parameters
 2. Verify carrier is available for the user
-3. Calculate duties (if international shipment)
-4. Calculate total cost (shipping + duties)
-5. Create shipping label with the carrier
-6. Return label, tracking information, and cost
+3. Calculate shipping rate
+4. Calculate duties (if international shipment)
+5. Calculate total cost (shipping + duties)
+6. Process payment (unless user has stripeBypass)
+7. Create shipping label with the carrier
+8. Return label, tracking information, and cost breakdown
 
-**Response:**
+**Response for UPS:**
 
 ```json
 {
   "success": true,
   "data": {
+    "orderId": "order_id_12345",
     "trackingNumber": "1Z999AA10123456784",
-    "label": "data:image/gif;base64,R0lGODlhAQABAI...", // Base64 encoded label image
+    "labelUrl": "data:image/gif;base64,R0lGODlhAQABAI...", // Base64 encoded label image
     "barcode": "data:image/png;base64,iVBORw0KG...", // Base64 encoded barcode image
-    "carrier": "ups",
-    "service": {
-      "code": "03",
-      "name": "UPS Ground"
-    },
-    "estimatedDelivery": "2023-06-18T12:00:00.000Z",
+    "pickupRequestNumber": "PRN123456", // If pickup was requested
     "costs": {
       "shipping": 21.24,
       "duties": 59.42,
@@ -392,6 +416,40 @@ Creates a shipping label with a carrier after calculating rates and duties.
     }
   },
   "message": "Label created successfully with UPS"
+}
+```
+
+**Response for Bringer (Multi-leg):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "firstLeg": {
+      "orderId": "order_id_12345",
+      "trackingNumber": "1Z999AA10123456784",
+      "labelUrl": "data:image/gif;base64,R0lGODlhAQABAI...",
+      "barcode": "data:image/png;base64,iVBORw0KG...",
+      "carrier": "ups",
+      "service": "UPS Ground"
+    },
+    "secondLeg": {
+      "orderId": "order_id_67890",
+      "trackingNumber": "BPS123456789",
+      "labelUrl": "data:image/gif;base64,R0lGODlhAQABAI...",
+      "barcode": "data:image/png;base64,iVBORw0KG...",
+      "carrier": "bringer",
+      "service": "Standard"
+    },
+    "costs": {
+      "shipping": 29.99,
+      "duties": 59.42,
+      "pickup": 0,
+      "total": 89.41,
+      "currency": "USD"
+    }
+  },
+  "message": "Multi-leg label created successfully with Bringer"
 }
 ```
 
@@ -408,7 +466,7 @@ Tracks a shipment with a unified interface supporting multiple carriers.
 {
   "trackingNumber": "1Z999AA10123456784",
   "carrier": "ups",
-  "originCountry": "US"
+  "originCountry": "US" // Required for UPS tracking
 }
 ```
 
@@ -614,6 +672,95 @@ Validates package dimensions, weight, and value against shipping limits.
 }
 ```
 
+### Create Pickup Request
+
+Creates a pickup request for UPS shipments.
+
+**Endpoint:** `POST /shipping/pickup`
+**Authentication:** Required
+
+**Request Body (with Order IDs):**
+
+```json
+{
+  "orderIds": ["order_id_1", "order_id_2"],
+  "pickup": {
+    "pickupDate": "2023-06-16",
+    "pickupStart": "09:00",
+    "pickupEnd": "17:00",
+    "pickupType": "01",
+    "residential": "01"
+  },
+  "confirmationEmail": "pickup@example.com" // Optional, defaults to user's email
+}
+```
+
+**Request Body (with Custom Request):**
+
+```json
+{
+  "customRequest": {
+    "from": {
+      "name": "John Doe",
+      "companyName": "Company Inc",
+      "addressLine": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "US",
+      "phone": "+12125551234"
+    },
+    "to": {
+      "name": "Jane Smith",
+      "addressLine": "456 Other Ave",
+      "city": "Los Angeles",
+      "state": "CA",
+      "postalCode": "90001",
+      "country": "US"
+    },
+    "packages": [{
+      "weight": "10",
+      "weightUnit": "lb",
+      "length": "12",
+      "width": "10",
+      "height": "8",
+      "measurementUnit": "in"
+    }],
+    "service": {
+      "code": "03",
+      "name": "UPS Ground"
+    }
+  },
+  "pickup": {
+    "pickupDate": "2023-06-16",
+    "pickupStart": "09:00",
+    "pickupEnd": "17:00",
+    "pickupType": "01",
+    "residential": "01"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "pickupRequestNumber": "PRN123456",
+    "pickupCharge": "5.00",
+    "rateStatus": "VALID",
+    "orderIds": ["order_id_1", "order_id_2"]
+  },
+  "message": "Pickup request created successfully"
+}
+```
+
+**Notes:**
+- Pickup is only supported for UPS shipments
+- When using orderIds, all orders must have the same pickup address
+- The pickup charge is automatically calculated and returned in the response
+
 ## Shipping Limits
 
 ### Bringer Limits by Destination
@@ -676,50 +823,6 @@ UPS has standard dimensional limits that apply globally:
   - Weight and dimension specifications
   - Quote request to bps-sales@bringer.com
 
-### Usage Examples
-
-#### Check if package meets Argentina limits:
-```bash
-curl -X POST /shipping/validate-dimensions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "carrier": "bringer",
-    "dimensions": {"length": 35, "width": 25, "height": 15},
-    "weight": 30,
-    "origin": "US",
-    "destination": "AR",
-    "dimensionUnit": "IN",
-    "weightUnit": "LBS"
-  }'
-```
-
-#### Response for valid package:
-```json
-{
-  "success": true,
-  "data": {
-    "valid": true,
-    "dimensions": {"valid": true, "message": null},
-    "weight": {"valid": true, "message": null}
-  }
-}
-```
-
-#### Response for oversized package:
-```json
-{
-  "success": true,
-  "data": {
-    "valid": false,
-    "dimensions": {
-      "valid": false, 
-      "message": "For AR via Bringer, maximum allowed length is 39 IN"
-    },
-    "weight": {"valid": true, "message": null}
-  }
-}
-```
-
 ## Error Handling
 
 Errors are returned with appropriate HTTP status codes and descriptive messages:
@@ -734,11 +837,11 @@ Errors are returned with appropriate HTTP status codes and descriptive messages:
 
 Common status codes:
 - `400`: Bad Request - Invalid input parameters
-- `401`: Unauthorized - Authentication required
+- `401`: Unauthorized - Authentication required or invalid token
 - `404`: Not Found - Resource not found
 - `500`: Internal Server Error - Server-side error
 
-For validation errors, the response will include specific information about the missing or invalid fields. 
+For validation errors, the response will include specific information about the missing or invalid fields.
 
 ## Country-Specific Requirements
 
@@ -764,4 +867,4 @@ For all international shipments:
 - HS codes are required for all items
 - HS codes must be valid for both origin and destination countries
 - Declared value is required for customs clearance
-- Shipping purpose must be specified (SALE, GIFT, SAMPLE, RETURN, OTHER) 
+- Shipping purpose must be specified (SALE, GIFT, SAMPLE, RETURN, OTHER)
