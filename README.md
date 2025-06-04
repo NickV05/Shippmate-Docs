@@ -180,13 +180,13 @@ Calculates shipping rates from multiple carriers with a unified request format.
   ],
   "carrier": "all", 
   "service": {
-    "code": "03", // Optional service code if you want rates for a specific service
-    "name": "UPS Ground" // Optional
+    "code": "03", // Optional service code if you want calibrated rates for a specific service with provided dimensions and weight
+    "name": "UPS Ground" 
   },
-  "shipmentDate": "2023-06-15", // Optional
+  "shipmentDate": "2023-06-15",
   "declaredValue": 150, // Optional, for international shipments
   "currency": "USD", 
-  "incoterms": "DDP" // Currently supporting only DDP 
+  "incoterms": "DDP" // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
 }
 ```
 
@@ -263,7 +263,7 @@ Calculates duties and taxes for international shipments.
   ],
   "declaredValue": 170.00,
   "currency": "USD",
-  "incoterms": "DDP", // Currently supporting only DDP 
+  "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
   "carrier": "ups" // Specify carrier to use for duties calculation (ups or bringer)
 }
 ```
@@ -288,6 +288,7 @@ Calculates duties and taxes for international shipments.
 - For Bringer carrier, duties are calculated individually for each item and then summed
 - For UPS carrier, the API uses the UPS Landed Cost API for accurate calculations
 - HS codes are validated and may be automatically adjusted for specific country combinations
+- **DDP is mandatory for all imports to the US (regardless of carrier) and for all Bringer shipments.** If you do not provide incoterms, the system will enforce these rules automatically.
 
 ### Create Shipping Label
 
@@ -321,7 +322,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "postalCode": "90001",
     "country": "US",
     "phone": "+13105551234",
-    "taxId": "12345678901"  // Required for Brazilian recipients when using Bringer carrier
+    "taxId": "12345678901"  // Required for Brazilian And Argentinian recipients when using Bringer carrier
   },
   "packages": [
     {
@@ -361,7 +362,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
   ],
   "declaredValue": 170.00,
   "currency": "USD",
-  "incoterms": "DDP", // Currently supporting only DDP 
+  "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
   "shippingPurpose": "SALE", 
   "pickup": {  // Optional UPS pickup object
     "pickupDate": "2023-06-16",
@@ -369,12 +370,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "pickupEnd": "17:00",
     "pickupType": "01",
     "residential": "01"
-  },
-  "payment": {  // Required unless user has stripeBypass
-    "customerId": "cus_xxxxxxxxxxxxx",
-    "description": "Custom payment description"
-  },
-  "skipEmailSending": false // Optional, defaults to false
+  }
 }
 ```
 
@@ -452,6 +448,22 @@ Creates a shipping label with a carrier after calculating rates and duties.
   "message": "Multi-leg label created successfully with Bringer"
 }
 ```
+
+### Incoterms Handling for UPS Labels
+
+When creating a shipping label with UPS, the system will automatically determine the appropriate incoterms if not explicitly provided in your request. The logic is as follows:
+
+- **For UPS imports to the US (destination country is US):**
+  - The incoterms will always be set to **DDP** (Delivered Duty Paid), regardless of the origin country.
+- **For shipments with UPS where the origin country is the US and the destination country is NOT the US:**
+  - The default incoterms will be set to **DDU** (Delivered Duty Unpaid).
+- **For all other UPS shipments (including non-US origins and non-US destinations):**
+  - The default incoterms will be set to **DDP** (Delivered Duty Paid).
+
+This logic is implemented in the backend. If you do not specify the `incoterms` field in your label creation request, the system will apply this logic automatically. You can override this by explicitly providing `incoterms` in your request body.
+
+In this case, the system will set `incoterms` to `DDP` for the UPS label (import to the US).
+
 
 ### Track Shipment
 
@@ -691,7 +703,7 @@ Creates a pickup request for UPS shipments.
     "pickupType": "01",
     "residential": "01"
   },
-  "confirmationEmail": "pickup@example.com" // Optional, defaults to user's email
+  "confirmationEmail": "pickup@example.com"
 }
 ```
 
