@@ -186,7 +186,8 @@ Calculates shipping rates from multiple carriers with a unified request format.
   "shipmentDate": "2023-06-15",
   "declaredValue": 150, // Optional, for international shipments
   "currency": "USD", 
-  "incoterms": "DDP" // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
+  "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
+  "documentsOnly": false
 }
 ```
 
@@ -264,7 +265,8 @@ Calculates duties and taxes for international shipments.
   "declaredValue": 170.00,
   "currency": "USD",
   "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
-  "carrier": "ups" // Specify carrier to use for duties calculation (ups or bringer)
+  "carrier": "ups", // Specify carrier to use for duties calculation (ups or bringer)
+  "documentsOnly": false
 }
 ```
 
@@ -344,6 +346,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
   },
   "carrier": "ups",
   "shipmentDate": "2023-06-15",
+  "documentsOnly": false,
   "items": [
     {
       "id": "1",
@@ -464,6 +467,34 @@ This logic is implemented in the backend. If you do not specify the `incoterms` 
 
 In this case, the system will set `incoterms` to `DDP` for the UPS label (import to the US).
 
+### Document-only Shipments
+Some shipments consist exclusively of paper documents (e.g., contracts, certificates).  
+Set **`"documentsOnly": true`** in your request to indicate this. The behaviour is:
+
+* Only UPS carrier is supported currently for document labels.  
+* Duties and taxes are automatically returned as **0**. 
+
+Example excerpt:
+
+```json
+{
+  "from": { /* … */ },
+  "to":   { /* … */ },
+  "packages": [{
+    "weight": "1",
+    "weightUnit": "lb",
+    "length": "12",
+    "width": "9",
+    "height": "1",
+    "measurementUnit": "in"
+  }],
+  "carrier": "ups",
+  "service": { "code": "02", "name": "UPS 2nd Day Air" },
+  "documentsOnly": true
+}
+```
+
+If `documentsOnly` is omitted or set to **false** (default) the request is treated as a merchandise shipment.
 
 ### Track Shipment
 
