@@ -36,11 +36,13 @@ The Shipping API provides a universal interface for shipping operations, includi
 The API is available in two environments:
 
 ### Production Environment
+
 ```
 https://shippmate-server-d3d197bd152a.herokuapp.com
 ```
 
 ### Testing Environment (QA/DEV)
+
 ```
 https://shippmate-server-test-976f52a5a04a.herokuapp.com
 ```
@@ -54,6 +56,7 @@ To obtain an authentication token, use the `/shipping/auth` endpoint:
 **Endpoint:** `POST /shipping/auth`
 
 **Request Body:**
+
 ```json
 {
   "email": "your.email@example.com",
@@ -62,6 +65,7 @@ To obtain an authentication token, use the `/shipping/auth` endpoint:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -100,6 +104,7 @@ The token contains user identification and permissions. Some endpoints support o
 The API supports a testing mode for label creation without processing actual payments.
 
 To use testing mode:
+
 1. Use the QA environment URL instead of the production URL
 2. Rate and duties calculations will still provide accurate pricing
 
@@ -178,14 +183,14 @@ Calculates shipping rates from multiple carriers with a unified request format.
       "measurementUnit": "in"
     }
   ],
-  "carrier": "all", 
+  "carrier": "all",
   "service": {
     "code": "03", // Optional service code if you want calibrated rates for a specific service with provided dimensions and weight
-    "name": "UPS Ground" 
+    "name": "UPS Ground"
   },
   "shipmentDate": "2023-06-15",
   "declaredValue": 150, // Optional, for international shipments
-  "currency": "USD", 
+  "currency": "USD",
   "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
   "documentsOnly": false
 }
@@ -225,6 +230,7 @@ Calculates shipping rates from multiple carriers with a unified request format.
 ```
 
 **Notes:**
+
 - Rates are automatically sorted by transit time (fastest first), then by price
 - For authenticated users, rates include user-specific markups based on their settings
 - The API automatically selects the cheapest rate when multiple accounts are available for the same service
@@ -262,7 +268,7 @@ Calculates duties and taxes for international shipments.
       "contentEstimatedValue": "120.00"
     }
   ],
-  "declaredValue": 170.00,
+  "declaredValue": 170.0,
   "currency": "USD",
   "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
   "carrier": "ups", // Specify carrier to use for duties calculation (ups or bringer)
@@ -276,8 +282,8 @@ Calculates duties and taxes for international shipments.
 {
   "success": true,
   "data": {
-    "duties": 15.30,
-    "taxes": 8.50,
+    "duties": 15.3,
+    "taxes": 8.5,
     "brokerageFees": 35.62,
     "total": 59.42,
     "currency": "USD",
@@ -287,6 +293,7 @@ Calculates duties and taxes for international shipments.
 ```
 
 **Notes:**
+
 - For Bringer carrier, duties are calculated individually for each item and then summed
 - For UPS carrier, the API uses the UPS Landed Cost API for accurate calculations
 - HS codes are validated and may be automatically adjusted for specific country combinations
@@ -324,7 +331,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "postalCode": "90001",
     "country": "US",
     "phone": "+13105551234",
-    "taxId": "12345678901"  // Required for Brazilian And Argentinian recipients when using Bringer carrier
+    "taxId": "12345678901" // Required for Brazilian And Argentinian recipients when using Bringer carrier
   },
   "packages": [
     {
@@ -363,11 +370,12 @@ Creates a shipping label with a carrier after calculating rates and duties.
       "contentEstimatedValue": "120.00"
     }
   ],
-  "declaredValue": 170.00,
+  "declaredValue": 170.0,
   "currency": "USD",
   "incoterms": "DDP", // DDU is available only for export from US, DDP is mandatory for all imports to the US and for all Bringer shipments
-  "shippingPurpose": "SALE", 
-  "pickup": {  // Optional UPS pickup object
+  "shippingPurpose": "SALE",
+  "pickup": {
+    // Optional UPS pickup object
     "pickupDate": "2023-06-16",
     "pickupStart": "09:00",
     "pickupEnd": "17:00",
@@ -378,7 +386,9 @@ Creates a shipping label with a carrier after calculating rates and duties.
 ```
 
 **Important Notes:**
+
 - For shipments to Brazil using Bringer carrier, a valid Tax ID (CPF) is required in the recipient information
+- For Bringer shipments to Brazil (BR), Mexico (MX), Chile (CL), or Argentina (AR), states must be either valid ISO 2-letter codes or recognized state names. Use the `/shipping/limits` endpoint to get the list of accepted state formats
 - For international shipments, providing HS codes for items is mandatory
 - For UPS international shipments, declared value and shipping purpose are required
 - The `owner` field is automatically set to the authenticated user's ID if not provided
@@ -409,7 +419,7 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "costs": {
       "shipping": 21.24,
       "duties": 59.42,
-      "pickup": 5.00,
+      "pickup": 5.0,
       "total": 85.66,
       "currency": "USD"
     }
@@ -468,26 +478,33 @@ This logic is implemented in the backend. If you do not specify the `incoterms` 
 In this case, the system will set `incoterms` to `DDP` for the UPS label (import to the US).
 
 ### Document-only Shipments
+
 Some shipments consist exclusively of paper documents (e.g., contracts, certificates).  
 Set **`"documentsOnly": true`** in your request to indicate this. The behaviour is:
 
-* Only UPS carrier is supported currently for document labels.  
-* Duties and taxes are automatically returned as **0**. 
+- Only UPS carrier is supported currently for document labels.
+- Duties and taxes are automatically returned as **0**.
 
 Example excerpt:
 
 ```json
 {
-  "from": { /* … */ },
-  "to":   { /* … */ },
-  "packages": [{
-    "weight": "1",
-    "weightUnit": "lb",
-    "length": "12",
-    "width": "9",
-    "height": "1",
-    "measurementUnit": "in"
-  }],
+  "from": {
+    /* … */
+  },
+  "to": {
+    /* … */
+  },
+  "packages": [
+    {
+      "weight": "1",
+      "weightUnit": "lb",
+      "length": "12",
+      "width": "9",
+      "height": "1",
+      "measurementUnit": "in"
+    }
+  ],
   "carrier": "ups",
   "service": { "code": "02", "name": "UPS 2nd Day Air" },
   "documentsOnly": true
@@ -598,7 +615,7 @@ The response format is standardized across all carriers to provide a consistent 
 
 ### Get Shipping Limits
 
-Retrieves shipping limits for a specific carrier and destination.
+Retrieves shipping limits for a specific carrier and destination, including accepted state formats for countries that require state validation.
 
 **Endpoint:** `GET /shipping/limits`
 **Authentication:** Optional - works the same for all users
@@ -634,10 +651,28 @@ weightUnit: string (optional) - "LBS" or "KGS" (default: "LBS")
     },
     "weight": {
       "max": 44
+    },
+    "states": {
+      "acceptedNames": [
+        { "name": "buenos aires", "isoCode": "BA" },
+        { "name": "ciudad autonoma de buenos aires", "isoCode": "CABA" },
+        { "name": "catamarca", "isoCode": "CT" },
+        { "name": "chaco", "isoCode": "CH" },
+        { "name": "cordoba", "isoCode": "CB" }
+        // ... and more
+      ],
+      "isoCodes": ["BA", "CABA", "CT", "CH", "CB", "CR", "ER", "FM", "JY", "LP", "LR", "MZ", "MN", "NQ", "RN", "SA", "SJ", "SL", "SC", "SF", "SE", "TF", "TM"],
+      "description": "Accepted state names can be either ISO 2-letter codes or full state names as shown in acceptedNames"
     }
   }
 }
 ```
+
+**Notes:**
+
+- The `states` field is only included for Bringer shipments to countries that require state validation (AR, BR, CL, MX)
+- State names are case-insensitive and accents are normalized during validation
+- Both ISO 2-letter codes and full state names are accepted
 
 ### Validate Package Dimensions
 
@@ -761,14 +796,16 @@ Creates a pickup request for UPS shipments.
       "postalCode": "90001",
       "country": "US"
     },
-    "packages": [{
-      "weight": "10",
-      "weightUnit": "lb",
-      "length": "12",
-      "width": "10",
-      "height": "8",
-      "measurementUnit": "in"
-    }],
+    "packages": [
+      {
+        "weight": "10",
+        "weightUnit": "lb",
+        "length": "12",
+        "width": "10",
+        "height": "8",
+        "measurementUnit": "in"
+      }
+    ],
     "service": {
       "code": "03",
       "name": "UPS Ground"
@@ -800,6 +837,7 @@ Creates a pickup request for UPS shipments.
 ```
 
 **Notes:**
+
 - Pickup is only supported for UPS shipments
 - When using orderIds, all orders must have the same pickup address
 - The pickup charge is automatically calculated and returned in the response
@@ -811,6 +849,7 @@ Creates a pickup request for UPS shipments.
 For shipments from the US using Bringer carrier, the following limits apply by destination country:
 
 #### Argentina (AR)
+
 - **Weight Limits:**
   - Maximum: 44 lbs (20 kg)
 - **Dimension Limits:**
@@ -823,6 +862,7 @@ For shipments from the US using Bringer carrier, the following limits apply by d
   - Contact: bps-sales@bringer.com
 
 #### Brazil (BR)
+
 - **Weight Limits:**
   - Maximum: 66 lbs (29.9 kg)
 - **Dimension Limits:**
@@ -831,6 +871,7 @@ For shipments from the US using Bringer carrier, the following limits apply by d
   - **Minimums:** Length ≥ 6" (16 cm), Width ≥ 1" (1 cm), Height ≥ 4" (11 cm)
 
 #### Chile (CL)
+
 - **Weight Limits:**
   - Maximum: 6 lbs (2.7 kg)
 - **Dimension Limits:**
@@ -839,6 +880,7 @@ For shipments from the US using Bringer carrier, the following limits apply by d
   - **Minimums:** All dimensions ≥ 1" (1 cm)
 
 #### Mexico (MX)
+
 - **Weight Limits:**
   - Maximum: 132 lbs (59.8 kg)
 - **Dimension Limits:**
@@ -857,6 +899,7 @@ UPS has standard dimensional limits that apply globally:
 ### Value Limits
 
 #### Argentina
+
 - **Maximum Value:** US$400
 - **Currency:** USD only
 - **Over-limit Requirements:** Shipments exceeding US$400 require:
@@ -879,6 +922,7 @@ Errors are returned with appropriate HTTP status codes and descriptive messages:
 ```
 
 Common status codes:
+
 - `400`: Bad Request - Invalid input parameters
 - `401`: Unauthorized - Authentication required or invalid token
 - `404`: Not Found - Resource not found
@@ -888,8 +932,32 @@ For validation errors, the response will include specific information about the 
 
 ## Country-Specific Requirements
 
+### State Validation for Bringer Shipments
+
+When using Bringer carrier for shipments to Brazil (BR), Mexico (MX), Chile (CL), or Argentina (AR), state validation is enforced:
+
+- **Accepted Formats:**
+  - ISO 2-letter state codes (e.g., "SP" for São Paulo, "BC" for Baja California)
+  - Full state names in lowercase (e.g., "são paulo", "baja california")
+  - State names are case-insensitive and accents are normalized
+
+- **Validation Process:**
+  - If the state is already a 2-letter code, it's validated against known ISO codes for that country
+  - If the state is a full name, it's converted to its ISO code automatically
+  - If the state is neither a valid ISO code nor a recognized state name, the API returns an error
+
+- **Error Messages:** When state validation fails, you'll receive a descriptive error like:
+  ```
+  Invalid origin state: State 'XY' is not a valid 2-letter ISO code and was not found in our list of accepted state names for BR
+  ```
+
+- **Getting Valid States:** Use the `/shipping/limits` endpoint to retrieve the list of accepted state names and ISO codes for each country
+
 ### Argentina (AR)
+
 When using Bringer carrier for shipments to Argentina:
+
+- **State Validation:** Required - see State Validation section above
 - **Value Limitation:** Maximum declared value is US$400
 - **Over-limit Process:** Shipments exceeding US$400 require a comprehensive quote including:
   - Complete H.S. Code classification for all items
@@ -900,13 +968,33 @@ When using Bringer carrier for shipments to Argentina:
 - **Weight and Dimension Limits:** Must comply with Bringer Argentina limits (see Shipping Limits section)
 
 ### Brazil (BR)
+
 When using Bringer carrier for shipments to Brazil:
+
+- **State Validation:** Required - see State Validation section above
 - A valid Tax ID (CPF for individuals, CNPJ for businesses) is required in the recipient information
 - Must be provided in the `taxId` field of the `to` address object
 - The API will return a validation error if the Tax ID is missing
 
+### Chile (CL)
+
+When using Bringer carrier for shipments to Chile:
+
+- **State Validation:** Required - see State Validation section above
+- Standard weight and dimension limits apply (see Shipping Limits section)
+
+### Mexico (MX)
+
+When using Bringer carrier for shipments to Mexico:
+
+- **State Validation:** Required - see State Validation section above
+- Shipments are automatically routed through Laredo, TX for optimal pricing
+- Standard weight and dimension limits apply (see Shipping Limits section)
+
 ### International Shipments
+
 For all international shipments:
+
 - HS codes are required for all items
 - HS codes must be valid for both origin and destination countries
 - Declared value is required for customs clearance
