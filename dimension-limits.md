@@ -23,12 +23,33 @@ Different carriers have specific limits for package dimensions, weight, and decl
 
 For shipments from the US using Bringer carrier, the following limits apply:
 
+### State Validation Requirements
+
+**Important:** All Bringer shipments to Brazil, Mexico, Chile, and Argentina require valid state/province information. The API validates states and accepts both:
+- **ISO Codes:** BR (São Paulo), RJ (Rio de Janeiro), etc.
+- **Full Names:** São Paulo, Rio de Janeiro, etc.
+
+**Validation Process:**
+- Case-insensitive matching with accent normalization
+- Automatic conversion from full names to ISO codes
+- Descriptive error messages for invalid states
+- Use `/shipping/limits` endpoint to retrieve valid state formats
+
+**Error Example:**
+```json
+{
+  "error": "Invalid state 'SP1' for Brazil. Valid states include: AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO. You can also use full state names like 'São Paulo'."
+}
+```
+
 ### Argentina (AR)
 
 #### Weight Limits
+
 - **Maximum Weight:** 44 lbs (20 kg)
 
 #### Dimension Limits
+
 - **Imperial (Inches):**
   - Maximum Length: 39"
   - Maximum Width: 39"
@@ -48,6 +69,7 @@ For shipments from the US using Bringer carrier, the following limits apply:
   - Minimum Height: 11 cm
 
 #### Value Limits
+
 - **Maximum Declared Value:** US$400
 - **Currency:** USD only
 - **Over-limit Process:** Shipments exceeding US$400 require a comprehensive quote including:
@@ -60,9 +82,11 @@ For shipments from the US using Bringer carrier, the following limits apply:
 ### Brazil (BR)
 
 #### Weight Limits
+
 - **Maximum Weight:** 66 lbs (29.9 kg)
 
 #### Dimension Limits
+
 - **Imperial (Inches):**
   - Maximum Length: No limit
   - Maximum Width: No limit
@@ -84,9 +108,11 @@ For shipments from the US using Bringer carrier, the following limits apply:
 ### Chile (CL)
 
 #### Weight Limits
+
 - **Maximum Weight:** 6 lbs (2.7 kg)
 
 #### Dimension Limits
+
 - **Imperial (Inches):**
   - Maximum Length: 39.85"
   - Maximum Width: 39.85"
@@ -108,9 +134,11 @@ For shipments from the US using Bringer carrier, the following limits apply:
 ### Mexico (MX)
 
 #### Weight Limits
+
 - **Maximum Weight:** 132 lbs (59.8 kg)
 
 #### Dimension Limits
+
 - **Imperial (Inches):**
   - Maximum Length: 23"
   - Maximum Width: No limit
@@ -140,6 +168,7 @@ UPS has standard dimensional limits that apply globally:
 ## Value Restrictions
 
 ### Argentina
+
 - **Maximum Value:** US$400
 - **Currency:** USD only
 - **Enforcement:** API will reject shipments exceeding this limit
@@ -154,6 +183,50 @@ UPS has standard dimensional limits that apply globally:
 
 ```bash
 GET /shipping/limits?carrier=bringer&origin=US&destination=AR&dimensionUnit=IN&weightUnit=LBS
+```
+
+**Enhanced Response with State Information:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "dimensions": {
+      "maxLength": 39,
+      "maxWidth": 39,
+      "maxHeight": 39,
+      "maxCombined": 70,
+      "minLength": 6,
+      "minWidth": 1,
+      "minHeight": 4
+    },
+    "weight": {
+      "max": 44,
+      "unit": "LBS"
+    },
+    "value": {
+      "max": 400,
+      "currency": "USD"
+    },
+    "states": {
+      "required": true,
+      "acceptedNames": [
+        "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", 
+        "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", 
+        "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", 
+        "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", 
+        "Santiago del Estero", "Tierra del Fuego", "Tucumán", "Ciudad Autónoma de Buenos Aires"
+      ],
+      "isoCodes": [
+        "AR-B", "AR-K", "AR-H", "AR-U", "AR-X", "AR-W", "AR-E", 
+        "AR-P", "AR-Y", "AR-L", "AR-F", "AR-M", "AR-N", "AR-Q", 
+        "AR-R", "AR-A", "AR-J", "AR-D", "AR-Z", "AR-S", "AR-G", 
+        "AR-V", "AR-T", "AR-C"
+      ],
+      "description": "Argentina requires valid province information. Use either full province names or ISO codes."
+    }
+  }
+}
 ```
 
 ### Validate Package Dimensions
@@ -184,10 +257,11 @@ Content-Type: application/json
 ### Valid Package to Argentina
 
 **Request:**
+
 ```json
 {
   "carrier": "bringer",
-  "dimensions": {"length": 35, "width": 25, "height": 8},
+  "dimensions": { "length": 35, "width": 25, "height": 8 },
   "weight": 35,
   "value": 350,
   "origin": "US",
@@ -198,14 +272,15 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "valid": true,
-    "dimensions": {"valid": true, "message": null},
-    "weight": {"valid": true, "message": null},
-    "value": {"valid": true, "message": null}
+    "dimensions": { "valid": true, "message": null },
+    "weight": { "valid": true, "message": null },
+    "value": { "valid": true, "message": null }
   }
 }
 ```
@@ -213,10 +288,11 @@ Content-Type: application/json
 ### Oversized Package
 
 **Request:**
+
 ```json
 {
   "carrier": "bringer",
-  "dimensions": {"length": 45, "width": 25, "height": 8},
+  "dimensions": { "length": 45, "width": 25, "height": 8 },
   "weight": 35,
   "origin": "US",
   "destination": "AR"
@@ -224,6 +300,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -233,8 +310,8 @@ Content-Type: application/json
       "valid": false,
       "message": "For AR via Bringer, maximum allowed length is 39 IN"
     },
-    "weight": {"valid": true, "message": null},
-    "value": {"valid": true, "message": null}
+    "weight": { "valid": true, "message": null },
+    "value": { "valid": true, "message": null }
   }
 }
 ```
@@ -242,10 +319,11 @@ Content-Type: application/json
 ### Over-Value Package to Argentina
 
 **Request:**
+
 ```json
 {
   "carrier": "bringer",
-  "dimensions": {"length": 35, "width": 25, "height": 8},
+  "dimensions": { "length": 35, "width": 25, "height": 8 },
   "weight": 35,
   "value": 500,
   "origin": "US",
@@ -254,13 +332,14 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "valid": false,
-    "dimensions": {"valid": true, "message": null},
-    "weight": {"valid": true, "message": null},
+    "dimensions": { "valid": true, "message": null },
+    "weight": { "valid": true, "message": null },
     "value": {
       "valid": false,
       "message": "Shipments over US$400.00 require a quote with H.S. Code, full description, invoice price, weight and dimensions. Please contact bps-sales@bringer.com"
@@ -279,4 +358,4 @@ Content-Type: application/json
 
 4. **Value Validation:** Currently only Argentina has specific value restrictions, but this may be expanded to other countries in the future.
 
-5. **Currency Support:** Value limits currently only support USD. Other currencies may be added in future updates. 
+5. **Currency Support:** Value limits currently only support USD. Other currencies may be added in future updates.
