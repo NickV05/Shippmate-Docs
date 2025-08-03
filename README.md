@@ -20,6 +20,7 @@ This document provides comprehensive information about the Shipping API endpoint
   - [Get Shipping Limits](#get-shipping-limits)
   - [Validate Package Dimensions](#validate-package-dimensions)
   - [Create Pickup Request](#create-pickup-request)
+- [Pickup Feature Best Practices](#pickup-feature-best-practices)
 - [Shipping Limits](#shipping-limits)
   - [Bringer Limits by Destination](#bringer-limits-by-destination)
   - [UPS Limits](#ups-limits)
@@ -380,7 +381,10 @@ Creates a shipping label with a carrier after calculating rates and duties.
     "pickupStart": "09:00",
     "pickupEnd": "17:00",
     "pickupType": "01",
-    "residential": "01"
+    "residential": "Y",
+    "pickupPoint": "Front Door",
+    "floor": "3rd Floor",
+    "specialInstructions": "Ring doorbell twice"
   }
 }
 ```
@@ -767,7 +771,10 @@ Creates a pickup request for UPS shipments.
     "pickupStart": "09:00",
     "pickupEnd": "17:00",
     "pickupType": "01",
-    "residential": "01"
+    "residential": "Y",
+    "pickupPoint": "Front Door",
+    "floor": "3rd Floor",
+    "specialInstructions": "Please use service entrance"
   },
   "confirmationEmail": "pickup@example.com"
 }
@@ -816,7 +823,10 @@ Creates a pickup request for UPS shipments.
     "pickupStart": "09:00",
     "pickupEnd": "17:00",
     "pickupType": "01",
-    "residential": "01"
+    "residential": "Y",
+    "pickupPoint": "Front Door",
+    "floor": "3rd Floor",
+    "specialInstructions": "Please use service entrance"
   }
 }
 ```
@@ -836,11 +846,52 @@ Creates a pickup request for UPS shipments.
 }
 ```
 
+**Pickup Parameters:**
+
+- `pickupDate` (required): Date for pickup in YYYY-MM-DD format
+- `pickupStart` (required): Earliest pickup time in HH:MM format (24-hour)
+- `pickupEnd` (required): Latest pickup time in HH:MM format (24-hour)
+- `pickupType` (required): Type of pickup service
+  - `"01"`: Same-Day Pickup
+  - `"02"`: Next-Day Pickup
+  - `"03"`: A Specific-Day Pickup
+- `residential` (required): Indicates if pickup location is residential
+  - `"Y"`: Residential address
+  - `"N"`: Commercial address
+- `pickupPoint` (optional): Specific pickup location (e.g., "Front Door", "Reception", "Loading Dock")
+- `floor` (optional): Floor or suite information (e.g., "3rd Floor", "Suite 200")
+- `specialInstructions` (optional): Special instructions for the driver (max 255 characters)
+
 **Notes:**
 
 - Pickup is only supported for UPS shipments
 - When using orderIds, all orders must have the same pickup address
 - The pickup charge is automatically calculated and returned in the response
+- For bulk orders, each package is counted separately in the pickup request
+- For regular orders, item quantities are preserved in the pickup request
+
+## Pickup Feature Best Practices
+
+When using the pickup functionality through the API:
+
+1. **Floor Information**: Be specific about the location within the building
+   - Good: "3rd Floor, Suite 305", "Ground Floor - Reception"
+   - Avoid: Just "3" or "Third"
+
+2. **Special Instructions**: Keep instructions clear and concise
+   - Include relevant contact information if needed
+   - Mention any access codes or special entry procedures
+   - Specify preferred entrances or loading areas
+   - Maximum 255 characters
+
+3. **Pickup Point Selection**: Choose the most appropriate pickup location
+   - Available options include: "Front Door", "Reception", "Loading Dock", etc.
+   - This helps drivers locate the exact pickup point
+
+4. **Residential vs Commercial**: Correctly identify the pickup location type
+   - Use `"Y"` for residential addresses
+   - Use `"N"` for commercial addresses
+   - This affects pickup scheduling and pricing
 
 ## Shipping Limits
 
@@ -999,3 +1050,4 @@ For all international shipments:
 - HS codes must be valid for both origin and destination countries
 - Declared value is required for customs clearance
 - Shipping purpose must be specified (SALE, GIFT, SAMPLE, RETURN, OTHER)
+
