@@ -1,7 +1,106 @@
-# Shopogolic Authentication Usage Examples
+# buy.shippmate Authentication Usage Examples / Примеры использования аутентификации buy.shippmate
 
-## Overview
-This document provides examples of how to use the newly implemented Shopogolic authentication methods.
+[English](#english) | [Русский](#russian)
+
+---
+
+<a name="russian"></a>
+## 🇷🇺 Русская версия
+
+### Обзор
+Этот документ содержит примеры использования новых методов аутентификации buy.shippmate.
+
+### API Эндпоинты
+
+#### 1. Регистрация
+```http
+POST /shipping/auth/signup
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123",
+  "firstName": "Иван",
+  "lastName": "Иванов",
+  "phone": "+79123456789"  // необязательно
+}
+```
+
+**Ответ:**
+```json
+{
+  "success": true,
+  "authToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "message": "Account created successfully"
+}
+```
+
+#### 2. Вход
+```http
+POST /shipping/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123"
+}
+```
+
+**Ответ:**
+```json
+{
+  "success": true,
+  "authToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "507f1f77bcf86cd799439011",
+    "email": "user@example.com",
+    "firstName": "Иван",
+    "lastName": "Иванов",
+    "phone": "+79123456789"
+  }
+}
+```
+
+#### 3. Выход
+```http
+POST /shipping/auth/logout
+```
+
+**Ответ:**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+### Обработка ошибок
+
+#### Ошибки регистрации:
+- **Email уже существует**: `"User already exists."`
+- **Неверный формат email**: `"Provide a valid email address."`
+- **Слабый пароль**: `"Password must have at least 6 characters and contain at least one number, one lowercase and one uppercase letter."`
+- **Отсутствуют обязательные поля**: `"All fields are required."`
+
+#### Ошибки входа:
+- **Пользователь не найден**: `"User not found."`
+- **Неверный пароль**: `"Unable to authenticate the user"`
+- **Отсутствуют учетные данные**: `"Email and password are required."`
+
+### Конфигурация Cookie
+
+Система использует cookie для всего домена `.shippmate.com`, что позволяет:
+- Автоматическую аутентификацию на всех поддоменах
+- Автоматическое обновление при каждом запросе
+- Срок действия 12 часов
+
+---
+
+<a name="english"></a>
+## 🇬🇧 English Version
+
+### Overview
+This document provides examples of how to use the newly implemented buy.shippmate authentication methods.
 
 ## API Endpoints
 
@@ -157,11 +256,8 @@ Response (400):
 
 The authentication system uses domain-wide cookies that work across all ShippMate subdomains:
 
-1. **Cookie Domain**: `.shippmate.com`
-   - The leading dot (.) makes the cookie available to all subdomains
-   - Works on: `shippmate.com`, `buy.shippmate.com`, `api.shippmate.com`, etc.
 
-2. **Cookie Properties**:
+1. **Cookie Properties**:
    ```javascript
    {
      httpOnly: true,        // Prevents JavaScript access (XSS protection)
@@ -173,7 +269,7 @@ The authentication system uses domain-wide cookies that work across all ShippMat
    }
    ```
 
-3. **Cookie Structure**:
+2. **Cookie Structure**:
    ```json
    {
      "token": "JWT_TOKEN_HERE",
@@ -181,4 +277,6 @@ The authentication system uses domain-wide cookies that work across all ShippMat
      "expiresAt": 1234567890000
    }
    ```
+
+
 
